@@ -1,4 +1,4 @@
-name: Assignment 5 - testing and CI Pipeline
+name: Project - End to End Trading System - testing and CI Pipeline
 on: [push, pull_request]
 jobs:
   test:

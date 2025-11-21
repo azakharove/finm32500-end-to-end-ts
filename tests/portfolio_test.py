@@ -29,6 +29,22 @@ def test_add_to_holding():
     portfolio.add_to_holding("AAPL", -20, 200)
     assert portfolio.get_holding("AAPL") == {"quantity": 20, "avg_price": 112.5}
 
+def test_get_all_holdings():
+    portfolio = Portfolio()
+    
+    portfolio.add_to_holding("AAPL", 10, 150)
+    portfolio.add_to_holding("MSFT", 20, 200)
+    
+    assert portfolio.get_all_holdings() == {
+        "AAPL": {"quantity": 10, "avg_price": 150.0},
+        "MSFT": {"quantity": 20, "avg_price": 200.0},
+    }
+
+    portfolio.add_to_holding("AAPL", -10, 150)
+    assert portfolio.get_all_holdings() == {
+        "MSFT": {"quantity": 20, "avg_price": 200.0},
+    }
+
 def test_insufficient_holding():
     portfolio = Portfolio()
     portfolio.add_to_holding("AAPL", 10, 150)
@@ -40,7 +56,6 @@ def test_missing_holding():
     portfolio = Portfolio()
     assert portfolio.get_holding("MSFT") == {"quantity": 0, "avg_price": 0.0}
 
-# TODO : Use get_all_holdings method
 def test_zero_out_holding():
     portfolio = Portfolio()
     portfolio.add_to_holding("MSFT", 10, 150)

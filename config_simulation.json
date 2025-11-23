@@ -1,0 +1,8 @@
+{
+  "gateway": {
+    "mode": "simulation",
+    "csv_path": "AAPL_5d_1m.csv",
+    "data_dir": "data"
+  }
+}
+

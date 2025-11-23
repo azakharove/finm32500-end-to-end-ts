@@ -1,0 +1,10 @@
+{
+  "gateway": {
+    "mode": "live",
+    "api_key": "API_KEY",
+    "api_secret": "API_SECRET",
+    "base_url": "https://paper-api.alpaca.markets",
+    "symbols": ["AAPL", "MSFT"]
+  }
+}
+

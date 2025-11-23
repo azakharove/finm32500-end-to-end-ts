@@ -1,7 +1,11 @@
 """Live Gateway for real-time trading with Alpaca."""
 
 from trading_lib.gateway.base import Gateway
-from trading_lib.models import MarketDataPoint, Order, OrderStatus
+from trading_lib.models import (
+    MarketDataPoint, Order, OrderStatus,
+    AlpacaPosition, AlpacaOrder, AccountState
+)
+from trading_lib.logging_config import get_logger
 
 
 class LiveGateway(Gateway):
@@ -31,6 +35,7 @@ class LiveGateway(Gateway):
         self.symbols = symbols or []
         self._api = None
         self._connected = False
+        self.logger = get_logger('gateway.live')
     
     def connect(self):
         """Connect to Alpaca API."""
@@ -46,17 +51,53 @@ class LiveGateway(Gateway):
         
         # Test connection
         account = self._api.get_account()
-        print(f"Connected to Alpaca (Paper: {self.base_url})")
-        print(f"Account Status: {account.status}")
-        print(f"Buying Power: ${float(account.buying_power):.2f}")
+        self.logger.info(f"Connected to Alpaca: {self.base_url}")
+        self.logger.info(f"Account Status: {account.status}")
+        self.logger.info(f"Buying Power: ${float(account.buying_power):,.2f}")
+        self.logger.info(f"Portfolio Value: ${float(account.portfolio_value):,.2f}")
         
         self._connected = True
+    
+    def get_account_state(self) -> AccountState:
+        """Get current account state from Alpaca.
+        
+        Returns:
+            AccountState: Structured account state with positions and orders
+        """
+        if not self._connected:
+            raise RuntimeError("Gateway not connected")
+        
+        # Get account info
+        account = self._api.get_account()
+        
+        # Get current positions
+        positions_raw = self._api.list_positions()
+        positions_dict = {}
+        for pos in positions_raw:
+            alpaca_pos = AlpacaPosition.from_alpaca_position(pos)
+            positions_dict[alpaca_pos.symbol] = alpaca_pos
+        
+        # Get open orders
+        open_orders_raw = self._api.list_orders(status='open')
+        orders_list = [AlpacaOrder.from_alpaca_order(order) for order in open_orders_raw]
+        
+        state = AccountState(
+            cash=float(account.cash),
+            buying_power=float(account.buying_power),
+            portfolio_value=float(account.portfolio_value),
+            positions=positions_dict,
+            open_orders=orders_list
+        )
+        
+        self.logger.info(f"Retrieved account state: {len(positions_dict)} positions, {len(orders_list)} open orders")
+        
+        return state
     
     def disconnect(self):
         """Disconnect from Alpaca."""
         self._close_audit_log()
         self._connected = False
-        print("Disconnected from Alpaca")
+        self.logger.info("Disconnected from Alpaca")
     
     def submit_order(self, order: Order):
         """Submit order to Alpaca.
@@ -82,7 +123,7 @@ class LiveGateway(Gateway):
                 time_in_force='day'
             )
             
-            print(f"Submitted order to Alpaca: {alpaca_order.id}")
+            self.logger.info(f"Submitted order to Alpaca: {alpaca_order.id}")
             
             # Log order submission
             self.log_order_sent(order, order_id=alpaca_order.id)
@@ -92,7 +133,7 @@ class LiveGateway(Gateway):
             self._publish_order_update(order)
             
         except Exception as e:
-            print(f"Error submitting order: {e}")
+            self.logger.error(f"Error submitting order: {e}")
             order.status = OrderStatus.FAILED
             self.log_order_cancelled(order, notes=str(e))
             self._publish_order_update(order)
@@ -108,21 +149,25 @@ class LiveGateway(Gateway):
         
         import time
         
-        print(f"Streaming market data for: {', '.join(self.symbols)}")
+        self.logger.info(f"Streaming market data for: {', '.join(self.symbols)}")
         
-        # Poll for latest trades (simplified - use WebSocket in production)
-        while self._connected:
-            for symbol in self.symbols:
-                try:
-                    trade = self._api.get_latest_trade(symbol)
-                    data_point = MarketDataPoint(
-                        timestamp=trade.timestamp,
-                        symbol=symbol,
-                        price=float(trade.price)
-                    )
-                    self._publish_market_data(data_point)
-                except Exception as e:
-                    print(f"Error fetching {symbol}: {e}")
-            
-            time.sleep(1)  # Poll every second
+        try:
+            # Poll for latest trades 
+            while self._connected:
+                for symbol in self.symbols:
+                    try:
+                        trade = self._api.get_latest_trade(symbol)
+                        data_point = MarketDataPoint(
+                            timestamp=trade.timestamp,
+                            symbol=symbol,
+                            price=float(trade.price)
+                        )
+                        self._publish_market_data(data_point)
+                    except Exception as e:
+                        self.logger.error(f"Error fetching {symbol}: {e}")
+                
+                time.sleep(1)  # Poll every second
+        except KeyboardInterrupt:
+            self.logger.info("Received interrupt signal, stopping...")
+            raise
 

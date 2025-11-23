@@ -34,3 +34,12 @@ class Portfolio(ABC):
     @abstractmethod
     def get_all_holdings(self):
         raise NotImplementedError("Subclasses must implement get_all_holdings method")
+    
+    def sync_state(self, cash: float, positions: dict):
+        """Sync portfolio state with external source (optional to implement).
+        
+        Args:
+            cash: Current cash balance
+            positions: Dict of {symbol: {'quantity': int, 'avg_price': float}}
+        """
+        pass  # Optional - only needed for live trading

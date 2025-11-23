@@ -1,0 +1,32 @@
+2025-11-23 17:31:07 | trading | INFO | Logging initialized | Level: INFO
+2025-11-23 17:31:07 | trading | INFO | Log directory: /Users/codytorgovnik/uchicago/finm32500/project/finm32500-end-to-end-ts/logs
+2025-11-23 17:31:07 | trading.main | INFO | Starting trading system with config: config_live.json
+2025-11-23 17:31:07 | trading.main | INFO | Mode: live
+2025-11-23 17:31:07 | trading.main | INFO | Gateway: LiveGateway
+2025-11-23 17:31:07 | trading.main | INFO | Strategy: MovingAverageStrategy
+2025-11-23 17:31:07 | trading.main | INFO | Syncing portfolio state with Alpaca account...
+2025-11-23 17:31:08 | trading.gateway.live | INFO | Connected to Alpaca: https://paper-api.alpaca.markets
+2025-11-23 17:31:08 | trading.gateway.live | INFO | Account Status: ACTIVE
+2025-11-23 17:31:08 | trading.gateway.live | INFO | Buying Power: $58,342.97
+2025-11-23 17:31:08 | trading.gateway.live | INFO | Portfolio Value: $100,000.00
+2025-11-23 17:31:08 | trading.gateway.live | INFO | Retrieved account state: 0 positions, 3 open orders
+2025-11-23 17:31:08 | trading.main | INFO | Account synced:
+2025-11-23 17:31:08 | trading.main | INFO |   Cash: $100,000.00
+2025-11-23 17:31:08 | trading.main | INFO |   Buying Power: $58,342.97
+2025-11-23 17:31:08 | trading.main | INFO |   Portfolio Value: $100,000.00
+2025-11-23 17:31:08 | trading.main | INFO |   Open Orders (3):
+2025-11-23 17:31:08 | trading.main | INFO |     [b24b1294-0d2c-4497-b3cf-83bae630a149] MSFT buy 100 @ $472.19 (Status: accepted, Filled: 0/100)
+2025-11-23 17:31:08 | trading.main | INFO |     [fa6b4f8b-adac-494d-81f9-e23a4c681c7d] MSFT buy 100 @ $472.19 (Status: accepted, Filled: 0/100)
+2025-11-23 17:31:08 | trading.main | INFO |     [e714df5f-5bf6-411b-ae59-96eda30ec3b1] MSFT buy 100 @ $472.19 (Status: accepted, Filled: 0/100)
+2025-11-23 17:31:08 | trading.main | INFO | --------------------------------------------------
+2025-11-23 17:31:08 | trading.main | INFO | Press Ctrl+C to stop
+2025-11-23 17:31:08 | trading.gateway.live | INFO | Streaming market data for: AAPL, MSFT
+2025-11-23 17:31:10 | trading.main | INFO | 
+
+Shutdown signal received (Ctrl+C)...
+2025-11-23 17:31:11 | trading.main | INFO | --------------------------------------------------
+2025-11-23 17:31:11 | trading.main | INFO | Final portfolio state:
+2025-11-23 17:31:11 | trading.main | INFO |   Cash: $58,342.97
+2025-11-23 17:31:11 | trading.main | INFO |   Positions: {}
+2025-11-23 17:31:11 | trading.main | INFO | --------------------------------------------------
+2025-11-23 17:31:11 | trading.main | INFO | Trading session complete.

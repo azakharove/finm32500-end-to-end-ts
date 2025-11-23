@@ -21,9 +21,9 @@ def create_gateway(config: GatewayConfig) -> Gateway:
             )
         case Mode.LIVE:
             return LiveGateway(
-                api_key=config.api_key,
-                api_secret=config.api_secret,
-                base_url=config.base_url,
+                api_key=config.alpaca.api_key,
+                api_secret=config.alpaca.api_secret,
+                base_url=config.alpaca.base_url,
                 symbols=config.symbols
             )
         case _:

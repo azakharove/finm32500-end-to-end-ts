@@ -7,6 +7,7 @@ import pandas as pd
 
 from trading_lib.gateway.base import Gateway
 from trading_lib.models import MarketDataPoint, Order
+from trading_lib.logging_config import get_logger
 
 
 class SimulationGateway(Gateway):
@@ -26,19 +27,20 @@ class SimulationGateway(Gateway):
         self.csv_path = self.data_dir / csv_path if not Path(csv_path).is_absolute() else Path(csv_path)
         self.matching_engine = matching_engine
         self._connected = False
+        self.logger = get_logger('gateway.simulation')
         
         if not self.csv_path.exists():
             raise FileNotFoundError(f"CSV file not found: {self.csv_path}")
     
     def connect(self):
         """Connect to simulation data source."""
-        print(f"Connected to simulation data: {self.csv_path}")
+        self.logger.info(f"Connected to simulation data: {self.csv_path}")
         self._connected = True
     
     def disconnect(self):
         """Disconnect from simulation."""
         self._close_audit_log()
-        print("Disconnected from simulation")
+        self.logger.info("Disconnected from simulation")
         self._connected = False
     
     def submit_order(self, order: Order):
@@ -59,7 +61,7 @@ class SimulationGateway(Gateway):
             # Matching engine will call _publish_order_update when order is filled
         else:
             # Simple simulation: immediate fill at order price
-            print(f"Simulated order execution: {order.symbol} {order.quantity}@{order.price}")
+            self.logger.debug(f"Simulated order execution: {order.symbol} {order.quantity}@{order.price}")
             self.log_order_filled(order, fill_price=order.price)
             self._publish_order_update(order)
     
@@ -68,15 +70,24 @@ class SimulationGateway(Gateway):
         if not self._connected:
             self.connect()
         
-        # Stream data line-by-line
-        with open(self.csv_path, 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                data_point = MarketDataPoint(
-                    timestamp=pd.to_datetime(row['Datetime']),
-                    symbol=row['Symbol'],
-                    price=float(row['Close'])
-                )
-                # Publish to all subscribers
-                self._publish_market_data(data_point)
+        try:
+            # Stream data line-by-line
+            with open(self.csv_path, 'r') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    # Check if we should stop
+                    if not self._connected:
+                        self.logger.info("Simulation stopped by disconnect signal")
+                        break
+                    
+                    data_point = MarketDataPoint(
+                        timestamp=pd.to_datetime(row['Datetime']),
+                        symbol=row['Symbol'],
+                        price=float(row['Close'])
+                    )
+                    # Publish to all subscribers
+                    self._publish_market_data(data_point)
+        except KeyboardInterrupt:
+            self.logger.info("Simulation interrupted")
+            raise
 

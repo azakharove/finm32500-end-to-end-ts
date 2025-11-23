@@ -1,4 +1,4 @@
-from trading_lib.models import Order, OrderStatus
+from trading_lib.models import Order, OrderStatus, AlpacaPosition
 from trading_lib.exceptions import OrderError
 from trading_lib.portfolio.base import Portfolio
 
@@ -82,3 +82,26 @@ class SimplePortfolio(Portfolio):
 
     def get_portfolio_value(self, current_prices: dict) -> float:
         return self.get_cash() + self.get_holdings_value(current_prices)
+    
+    def sync_state(self, cash: float, positions: dict):
+        """Sync portfolio state with external source (e.g., broker account).
+        
+        Args:
+            cash: Current cash balance
+            positions: Dict of {symbol: AlpacaPosition} or {symbol: {'quantity': int, 'avg_price': float}}
+        """
+        self.cash = cash
+        self.__holdings = {}
+        
+        for symbol, pos_data in positions.items():
+            # Handle both AlpacaPosition objects and dict format
+            if isinstance(pos_data, AlpacaPosition):
+                self.__holdings[symbol] = {
+                    'quantity': pos_data.quantity,
+                    'avg_price': pos_data.avg_price
+                }
+            else:
+                self.__holdings[symbol] = {
+                    'quantity': pos_data['quantity'],
+                    'avg_price': pos_data['avg_price']
+                }

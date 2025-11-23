@@ -5,6 +5,10 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional
 from enum import Enum
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 class Mode(str, Enum):
@@ -17,6 +21,12 @@ class Mode(str, Enum):
     def __repr__(self):
         return self.value
 
+@dataclass
+class AlpacaConfig:
+    api_key: Optional[str] = None
+    api_secret: Optional[str] = None
+    base_url: Optional[str] = None
+
 
 @dataclass
 class GatewayConfig:
@@ -28,9 +38,7 @@ class GatewayConfig:
     data_dir: Optional[str] = "data"
     
     # Live mode settings
-    api_key: Optional[str] = None
-    api_secret: Optional[str] = None
-    base_url: Optional[str] = "https://paper-api.alpaca.markets"
+    alpaca: Optional[AlpacaConfig] = None
     symbols: Optional[list] = None
 
 
@@ -66,15 +74,20 @@ def load_config(config_path: str) -> TradingConfig:
     with open(config_file, 'r') as f:
         data = json.load(f)
     
-    # Parse gateway config
+    alpaca_key = os.getenv('ALPACA_API_KEY')
+    alpaca_secret = os.getenv('ALPACA_API_SECRET')
+    alpaca_base_url = os.getenv('ALPACA_BASE_URL')
+    
     gateway_data = data.get('gateway', {})
     gateway_config = GatewayConfig(
         mode=gateway_data['mode'],
         csv_path=gateway_data.get('csv_path'),
         data_dir=gateway_data.get('data_dir', 'data'),
-        api_key=gateway_data.get('api_key'),
-        api_secret=gateway_data.get('api_secret'),
-        base_url=gateway_data.get('base_url', 'https://paper-api.alpaca.markets'),
+        alpaca=AlpacaConfig(
+            api_key=alpaca_key,
+            api_secret=alpaca_secret,
+            base_url=alpaca_base_url
+        ),
         symbols=gateway_data.get('symbols', [])
     )
     

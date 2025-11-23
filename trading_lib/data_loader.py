@@ -1,11 +1,13 @@
 """Simple data loader for downloading and preparing market data."""
 
 import csv
-import pandas as pd
-import yfinance as yf
 from pathlib import Path
 from datetime import datetime
 from typing import List
+
+import pandas as pd
+import yfinance as yf
+
 from trading_lib.models import MarketDataPoint
 
 

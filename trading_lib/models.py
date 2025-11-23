@@ -15,7 +15,9 @@ class OrderStatus(str, Enum):
     """Enum representing the status of an order."""
 
     PENDING = "PENDING"
-    COMPLETED = "COMPLETED"
+    FILLED = "FILLED"
+    PARTIALLY_FILLED = "PARTIALLY_FILLED"
+    CANCELED = "CANCELED"
     FAILED = "FAILED"
 
 class Order:

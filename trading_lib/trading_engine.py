@@ -102,7 +102,7 @@ class ExecutionEngine:
                 raise ExecutionError(order, "Simulated execution failure")
 
             # Execute order
-            order.status = OrderStatus.COMPLETED
+            order.status = OrderStatus.FILLED
             self.portfolio.apply_order(order)
             print(
                 f"Executed order: {order.symbol}, Quantity: {order.quantity}, Price: {order.price}, Status: {order.status}"

@@ -39,9 +39,9 @@ class SimplePortfolio(Portfolio):
             holding["quantity"] = new_quantity
 
     def apply_order(self, order: Order):
-        if order.status != OrderStatus.COMPLETED:
+        if order.status != OrderStatus.FILLED:
             raise OrderError(
-                order, "Only completed orders can be applied to the portfolio"
+                order, "Only filled orders can be applied to the portfolio"
             )
 
         total_cost = order.price * order.quantity

@@ -45,23 +45,23 @@ class TradingSystem:
                 order = Order(symbol, quantity, price, OrderStatus.PENDING)
                 
                 if self.portfolio.can_execute_order(order):
-                    print(f"\n📤 Submitting order: {symbol} {quantity}@{price}")
+                    print(f"Submitting order: {symbol} {quantity}@{price}")
                     self.gateway.submit_order(order)
                 else:
-                    print(f"\n❌ Cannot execute order: Insufficient funds/holdings")
+                    print(f"Cannot execute order: Insufficient funds/holdings")
     
     def on_order_update(self, order: Order):
         """Called when order status changes."""
         if order.status == OrderStatus.COMPLETED:
-            print(f"✅ Order filled: {order.symbol} {order.quantity}@{order.price}")
+            print(f"Order filled: {order.symbol} {order.quantity}@{order.price}")
             # Update portfolio
             self.portfolio.apply_order(order)
         elif order.status == OrderStatus.FAILED:
-            print(f"❌ Order failed: {order.symbol}")
+            print(f"Order failed: {order.symbol}")
     
     def run(self):
         """Start the trading system."""
-        print("🚀 Starting trading system...")
+        print("Starting trading system...")
         print("=" * 60)
         
         # This will block and process all data
@@ -73,7 +73,7 @@ class TradingSystem:
     def show_results(self):
         """Display trading results."""
         print("\n" + "=" * 60)
-        print("📊 TRADING RESULTS")
+        print("TRADING RESULTS")
         print("=" * 60)
         print(f"Total ticks processed: {self.tick_count}")
         print(f"Final cash: ${self.portfolio.get_cash():.2f}")
@@ -102,7 +102,7 @@ def main():
     try:
         system.run()
     except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted by user")
+        print("\nInterrupted by user")
     finally:
         gateway.disconnect()
 

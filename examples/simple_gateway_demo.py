@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from trading_lib.config import load_config
-from trading_lib.factory import create_gateway
+from trading_lib.gateway import create_gateway
 from trading_lib.models import MarketDataPoint
 
 
@@ -14,7 +14,7 @@ def main():
     """Run a simple gateway demo."""
     # Load config
     config = load_config('config_simulation.json')
-    gateway = create_gateway(config)
+    gateway = create_gateway(config.gateway)
     
     # Counter for stats
     tick_count = 0

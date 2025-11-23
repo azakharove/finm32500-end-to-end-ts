@@ -91,3 +91,37 @@ def test_get_period():
     engine.recording_interval = "NOT_A_REAL_INTERVAL"
     with pytest.raises(ValueError, match="Unknown recording interval"):
         engine._get_period(ts)
+
+
+def test_engine_error_handling():
+    """Test error handling in ExecutionEngine."""
+    strategy = MovingAverageStrategy(short_window=3, long_window=5, quantity=10)
+    portfolio = SimplePortfolio(holdings={}, cash=100)  # Low cash
+    engine = ExecutionEngine(strategy, portfolio=portfolio, failure_rate=0.0)
+    
+    # Create ticks that will generate a buy signal but insufficient cash
+    ticks = [
+        MarketDataPoint(datetime(2025, 9, 21, 19, 54, i), "AAPL", price)
+        for i, price in enumerate([100, 101, 102, 106, 108, 110], start=1)
+    ]
+    
+    # Should handle insufficient cash gracefully
+    engine.process_ticks(ticks)
+    # Portfolio should remain unchanged
+    assert portfolio.cash == 100
+
+
+def test_record_final_state():
+    """Test recording final portfolio state."""
+    strategy = MovingAverageStrategy()
+    portfolio = SimplePortfolio(holdings={}, cash=10000)
+    engine = ExecutionEngine(strategy, portfolio=portfolio)
+    
+    # Add some price data
+    engine.current_prices['AAPL'] = 150.0
+    
+    final_time = datetime(2025, 1, 1, 12, 0, 0)
+    engine.record_final_state(final_time)
+    
+    assert len(engine.portfolio_history) == 1
+    assert engine.portfolio_history[0][0] == final_time

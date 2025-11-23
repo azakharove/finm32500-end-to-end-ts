@@ -1,12 +1,12 @@
 import pytest
 
-from trading_lib.portfolios import InMemoryPortfolio
+from trading_lib.portfolio import SimplePortfolio
 from trading_lib.models import Order, OrderStatus
 from trading_lib.exceptions import OrderError
 
 
 def test_update_cash():
-    portfolio = InMemoryPortfolio()
+    portfolio = SimplePortfolio()
     
     portfolio.update_cash(10000)
     assert portfolio.cash == 10000
@@ -18,7 +18,7 @@ def test_update_cash():
         portfolio.update_cash(-10000)
 
 def test_add_to_holding():
-    portfolio = InMemoryPortfolio(cash=10000)
+    portfolio = SimplePortfolio(cash=10000)
     
     portfolio.add_to_holding("AAPL", 10, 150)
     assert portfolio.get_holding("AAPL") == {"quantity": 10, "avg_price": 150.0}
@@ -30,7 +30,7 @@ def test_add_to_holding():
     assert portfolio.get_holding("AAPL") == {"quantity": 20, "avg_price": 112.5}
 
 def test_get_all_holdings():
-    portfolio = InMemoryPortfolio()
+    portfolio = SimplePortfolio()
     
     portfolio.add_to_holding("AAPL", 10, 150)
     portfolio.add_to_holding("MSFT", 20, 200)
@@ -46,24 +46,24 @@ def test_get_all_holdings():
     }
 
 def test_insufficient_holding():
-    portfolio = InMemoryPortfolio()
+    portfolio = SimplePortfolio()
     portfolio.add_to_holding("AAPL", 10, 150)
     
     with pytest.raises(OrderError):
         portfolio.add_to_holding("AAPL", -15, 150)
     
 def test_missing_holding():
-    portfolio = InMemoryPortfolio()
+    portfolio = SimplePortfolio()
     assert portfolio.get_holding("MSFT") == {"quantity": 0, "avg_price": 0.0}
 
 def test_zero_out_holding():
-    portfolio = InMemoryPortfolio()
+    portfolio = SimplePortfolio()
     portfolio.add_to_holding("MSFT", 10, 150)
     portfolio.add_to_holding("MSFT", -10, 150)
     assert portfolio.get_holding("MSFT") == {"quantity": 0, "avg_price": 0.0}
 
 def test_apply_order():
-    portfolio = InMemoryPortfolio(holdings={}, cash=10000)
+    portfolio = SimplePortfolio(holdings={}, cash=10000)
 
     portfolio.apply_order(Order("AAPL", 10, 150, OrderStatus.COMPLETED))
     assert portfolio.cash == 8500
@@ -87,14 +87,14 @@ def test_apply_order():
 
 
 def test_apply_invalid_order():
-    portfolio = InMemoryPortfolio(cash=10000)
+    portfolio = SimplePortfolio(cash=10000)
     with pytest.raises(OrderError):
         pending_order = Order("AAPL", 5, 180, OrderStatus.PENDING)
         portfolio.apply_order(pending_order)
 
 
 def test_sell_quantity_exceeds_holding():
-    portfolio = InMemoryPortfolio(holdings={}, cash=10000)
+    portfolio = SimplePortfolio(holdings={}, cash=10000)
     
     portfolio.apply_order(Order("AAPL", 10, 150, OrderStatus.COMPLETED))
     assert portfolio.cash == 8500
@@ -104,7 +104,7 @@ def test_sell_quantity_exceeds_holding():
 
 
 def test_sell_missing_holding():
-    portfolio = InMemoryPortfolio(holdings={}, cash=10000)
+    portfolio = SimplePortfolio(holdings={}, cash=10000)
     with pytest.raises(OrderError):
         portfolio.apply_order(Order("AAPL", -5, 150, OrderStatus.COMPLETED))
 

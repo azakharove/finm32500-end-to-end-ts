@@ -4,7 +4,7 @@ from typing import List, Tuple, Optional, Iterable
 
 from trading_lib.models import Action, MarketDataPoint, Order, OrderStatus, RecordingInterval
 from trading_lib.portfolio import Portfolio
-from trading_lib.strategy import Strategy
+from trading_lib.strategies import Strategy
 from trading_lib.exceptions import ExecutionError, OrderError
 
 

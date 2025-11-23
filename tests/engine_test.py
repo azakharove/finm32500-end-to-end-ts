@@ -2,13 +2,13 @@ from datetime import datetime
 import pytest
 
 from trading_lib.engine import ExecutionEngine
-from trading_lib.portfolios import InMemoryPortfolio
-import trading_lib.strategies as strategies
+from trading_lib.portfolio import SimplePortfolio
+from trading_lib.strategies import MovingAverageStrategy
 from trading_lib.models import MarketDataPoint, RecordingInterval
 
 
 def test_moving_avg_crossover_strategy():
-    strategy = strategies.MovingAverageStrategy(
+    strategy = MovingAverageStrategy(
         short_window=3, long_window=5, quantity=10
     )
     ticks = [
@@ -56,7 +56,7 @@ def test_moving_avg_crossover_strategy():
         ),
     ]
 
-    portfolio = InMemoryPortfolio(holdings={}, cash=10000)
+    portfolio = SimplePortfolio(holdings={}, cash=10000)
     engine = ExecutionEngine(strategy, portfolio=portfolio)
     engine.process_ticks(ticks)
     assert portfolio.cash == 8900
@@ -64,7 +64,7 @@ def test_moving_avg_crossover_strategy():
 
 def test_get_period():
     ts = datetime(2024, 3, 15, 14, 27, 33)
-    engine = ExecutionEngine(strategy = strategies.MovingAverageStrategy(), portfolio=InMemoryPortfolio())
+    engine = ExecutionEngine(strategy=MovingAverageStrategy(), portfolio=SimplePortfolio())
 
     engine.recording_interval = RecordingInterval.TICK
     assert engine._get_period(ts) == (ts,)

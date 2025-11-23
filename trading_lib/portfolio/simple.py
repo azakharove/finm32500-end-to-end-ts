@@ -1,13 +1,10 @@
 from trading_lib.models import Order, OrderStatus
 from trading_lib.exceptions import OrderError
+from trading_lib.portfolio.base import Portfolio
 
-from trading_lib.portfolio import Portfolio
 
-
-class InMemoryPortfolio(Portfolio):
-    """
-    Concrete implementation of Portfolio that stores data in memory.
-    """
+class SimplePortfolio(Portfolio):
+    """Simple portfolio implementation with in-memory storage."""
 
     def __init__(self, cash: float = 0, holdings: dict = None):
         super().__init__()

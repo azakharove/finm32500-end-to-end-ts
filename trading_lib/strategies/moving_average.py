@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from trading_lib.strategy import Strategy
+from trading_lib.strategies.base import Strategy
 from trading_lib.models import MarketDataPoint, Action
 
 class MovingAverageStrategy(Strategy):

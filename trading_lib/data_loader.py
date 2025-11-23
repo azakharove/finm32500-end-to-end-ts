@@ -23,14 +23,12 @@ class DataLoader:
         print(f"Downloading {ticker} data...")
         data = yf.download(tickers=ticker, period=period, interval=interval, progress=False)
         
-        # Reset index to get datetime as a column
         data.reset_index(inplace=True)
         
         # Flatten MultiIndex columns if present
         if isinstance(data.columns, pd.MultiIndex):
             data.columns = [col[0] if col[1] == '' else col[0] for col in data.columns]
         
-        # Rename the datetime column (could be 'Date' or 'Datetime')
         if 'Date' in data.columns:
             data.rename(columns={'Date': 'Datetime'}, inplace=True)
         
@@ -42,11 +40,9 @@ class DataLoader:
         """Remove missing values, duplicates, and sort by time."""
         df = data.copy()
         
-        # Ensure Datetime column exists and is datetime type
         if 'Datetime' in df.columns:
             df['Datetime'] = pd.to_datetime(df['Datetime'])
         else:
-            # If no Datetime column, the index might be the datetime
             df.reset_index(inplace=True)
             df.rename(columns={'index': 'Datetime'}, inplace=True)
             df['Datetime'] = pd.to_datetime(df['Datetime'])

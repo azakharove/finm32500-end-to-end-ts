@@ -1,8 +1,10 @@
 """Simple data loader for downloading and preparing market data."""
 
+import csv
 import pandas as pd
 import yfinance as yf
 from pathlib import Path
+from datetime import datetime
 from typing import List
 from trading_lib.models import MarketDataPoint
 
@@ -67,7 +69,7 @@ class DataLoader:
         return df
     
     def to_market_data_points(self, data: pd.DataFrame) -> List[MarketDataPoint]:
-        """Convert DataFrame to MarketDataPoint objects for the engine."""
+        """Convert DataFrame to MarketDataPoint objects (loads all into memory)."""
         points = []
         for _, row in data.iterrows():
             points.append(MarketDataPoint(
@@ -76,27 +78,54 @@ class DataLoader:
                 price=row['Close']
             ))
         return points
+    
+    def from_csv(self, filename: str) -> List[MarketDataPoint]:
+        """Load CSV and convert to MarketDataPoint list (all in memory)."""
+        data = self.load_csv(filename)
+        return self.to_market_data_points(data)
+    
+    def stream_from_csv(self, filename: str):
+        """Stream MarketDataPoint objects line-by-line from CSV without loading into memory."""
+        filepath = self.data_dir / filename
+        
+        with open(filepath, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                yield MarketDataPoint(
+                    timestamp=pd.to_datetime(row['Datetime']),
+                    symbol=row['Symbol'],
+                    price=float(row['Close'])
+                )
 
 
 if __name__ == "__main__":
-    # Example usage
     loader = DataLoader()
     
     # Download and clean data
     data = loader.download_data("AAPL", period="5d", interval="1m")
     data = loader.clean_data(data)
-    
-    # Save to CSV
     loader.save_csv(data, "AAPL_5d_1m.csv")
     
-    # Load from CSV
-    loaded_data = loader.load_csv("AAPL_5d_1m.csv")
-    print(f"\nLoaded data shape: {loaded_data.shape}")
-    print(f"Date range: {loaded_data['Datetime'].min()} to {loaded_data['Datetime'].max()}")
+    print("\n" + "="*60)
+    print("Option 1: Load all into memory (from_csv)")
+    print("="*60)
+    # Loads entire CSV into memory as list of MarketDataPoint objects
+    market_points = loader.from_csv("AAPL_5d_1m.csv")
+    print(f"Loaded {len(market_points)} points into memory")
+    print(f"First: {market_points[0]}")
+    print(f"Last: {market_points[-1]}")
+    print(f"Loaded {len(market_points)} points into memory")
     
-    # Convert to MarketDataPoint objects
-    market_points = loader.to_market_data_points(loaded_data)
-    print(f"\nCreated {len(market_points)} MarketDataPoint objects")
-    print(f"First point: {market_points[0]}")
-    print(f"Last point: {market_points[-1]}")
+    print("\n" + "="*60)
+    print("Option 2: Stream from CSV (stream_from_csv)")
+    print("="*60)
+    # Streams data points without loading entire file
+    count = 0
+    for point in loader.stream_from_csv("AAPL_5d_1m.csv"):
+        if count < 3:
+            print(f"{point}")
+        count += 1
+    print(f"Streamed {count} total points")
+
+    
 

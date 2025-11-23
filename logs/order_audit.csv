@@ -1,0 +1,3 @@
+timestamp,event,symbol,quantity,price,order_id,status,notes
+2025-11-23T12:12:07.931965,SENT,AAPL,10,100.0,,PENDING,
+2025-11-23T12:12:07.931978,FILLED,AAPL,10,100.0,,PENDING,fill_price=100.0

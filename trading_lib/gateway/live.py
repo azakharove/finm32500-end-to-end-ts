@@ -12,7 +12,8 @@ class LiveGateway(Gateway):
         api_key: str,
         api_secret: str,
         base_url: str = "https://paper-api.alpaca.markets",
-        symbols: list = None
+        symbols: list = None,
+        audit_log_path: str = None
     ):
         """Initialize live gateway.
         
@@ -21,8 +22,9 @@ class LiveGateway(Gateway):
             api_secret: Alpaca API secret
             base_url: API base URL (paper or live trading)
             symbols: List of symbols to subscribe to
+            audit_log_path: Optional path for order audit log
         """
-        super().__init__()
+        super().__init__(audit_log_path=audit_log_path)
         self.api_key = api_key
         self.api_secret = api_secret
         self.base_url = base_url
@@ -52,6 +54,7 @@ class LiveGateway(Gateway):
     
     def disconnect(self):
         """Disconnect from Alpaca."""
+        self._close_audit_log()
         self._connected = False
         print("Disconnected from Alpaca")
     
@@ -81,6 +84,9 @@ class LiveGateway(Gateway):
             
             print(f"Submitted order to Alpaca: {alpaca_order.id}")
             
+            # Log order submission
+            self.log_order_sent(order, order_id=alpaca_order.id)
+            
             # Update order status
             order.status = OrderStatus.PENDING
             self._publish_order_update(order)
@@ -88,6 +94,7 @@ class LiveGateway(Gateway):
         except Exception as e:
             print(f"Error submitting order: {e}")
             order.status = OrderStatus.FAILED
+            self.log_order_cancelled(order, notes=str(e))
             self._publish_order_update(order)
     
     def run(self):

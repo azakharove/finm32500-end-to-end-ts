@@ -12,15 +12,16 @@ from trading_lib.models import MarketDataPoint, Order
 class SimulationGateway(Gateway):
     """Gateway for backtesting with historical CSV data and simulated execution."""
     
-    def __init__(self, csv_path: str, data_dir: str = "data", matching_engine=None):
+    def __init__(self, csv_path: str, data_dir: str = "data", matching_engine=None, audit_log_path: str = None):
         """Initialize simulation gateway.
         
         Args:
             csv_path: Path to CSV file with historical market data
             data_dir: Directory containing data files
             matching_engine: Optional MatchingEngine for order simulation
+            audit_log_path: Optional path for order audit log
         """
-        super().__init__()
+        super().__init__(audit_log_path=audit_log_path)
         self.data_dir = Path(data_dir)
         self.csv_path = self.data_dir / csv_path if not Path(csv_path).is_absolute() else Path(csv_path)
         self.matching_engine = matching_engine
@@ -36,6 +37,7 @@ class SimulationGateway(Gateway):
     
     def disconnect(self):
         """Disconnect from simulation."""
+        self._close_audit_log()
         print("Disconnected from simulation")
         self._connected = False
     
@@ -48,6 +50,9 @@ class SimulationGateway(Gateway):
         if not self._connected:
             raise RuntimeError("Gateway not connected")
         
+        # Log order submission
+        self.log_order_sent(order)
+        
         # If we have a matching engine, use it to simulate execution
         if self.matching_engine:
             self.matching_engine.process_order(order)
@@ -55,6 +60,7 @@ class SimulationGateway(Gateway):
         else:
             # Simple simulation: immediate fill at order price
             print(f"Simulated order execution: {order.symbol} {order.quantity}@{order.price}")
+            self.log_order_filled(order, fill_price=order.price)
             self._publish_order_update(order)
     
     def run(self):

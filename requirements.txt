@@ -3,3 +3,5 @@ coverage
 pandas
 numpy
 flake8
+yfinance
+requests

@@ -23,12 +23,13 @@ class OrderStatus(str, Enum):
 class Order:
     """Mutable class representing a trade order."""
 
-    def __init__(self, symbol: str, quantity: int, price: float, status: OrderStatus):
+    def __init__(self, symbol: str, quantity: int, price: float, status: OrderStatus, id: str | None = None):
         self.symbol = symbol
         self.quantity = quantity
         self.price = price
         self.status = status
-
+        self.id = id
+        
 class Action(str, Enum):
     """Enum representing the action of an order."""
 

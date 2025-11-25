@@ -42,7 +42,7 @@ class TradingEngine:
             if action == Action.HOLD:
                 continue
                 
-            order = Order(symbol=symbol, quantity=quantity, price=price, status=OrderStatus.PENDING)
+            order = Order(symbol=symbol, quantity=quantity, price=price, status=OrderStatus.PENDING, filled_quantity=0)
             
             if self.order_manager.validate_order(order):
                 self.gateway.submit_order(order)
@@ -50,13 +50,74 @@ class TradingEngine:
                 self.logger.warning(f"Order validation failed: {order.symbol} {order.quantity}@{order.price}")
     
     def _on_order_update(self, order: Order):
-        if order.status == OrderStatus.COMPLETED:
-            self.portfolio.apply_order(order)
+        if order.status == OrderStatus.ACTIVE:
+            # Order is now active on exchange (acknowledged)
             self.order_manager.record_order(order)
-            self.logger.info(f"Order filled: {order.symbol} {order.quantity}@{order.price}")
+            
+            # Check if there's a fill update even though status is ACTIVE
+            # (Gateway might send ACTIVE status with filled_quantity > 0)
+            if order.filled_quantity > 0:
+                new_fill_qty, remaining_qty = self.order_manager.update_order_fill(order, order.filled_quantity)
+                if new_fill_qty > 0:
+                    self._apply_fill(order, new_fill_qty)
+                    # Status is already updated by update_order_fill
+                    if remaining_qty > 0:
+                        self.logger.info(f"Order partially filled: {order.symbol} {new_fill_qty} filled, {remaining_qty} remaining @{order.price}")
+                    else:
+                        self.logger.info(f"Order fully filled: {order.symbol} {order.quantity}@{order.price}")
+                        self.order_manager.remove_order(order)
+            else:
+                self.logger.debug(f"Order active: {order.symbol} {order.quantity}@{order.price}")
+            
+        elif order.status == OrderStatus.PARTIALLY_FILLED:
+            # Order partially filled - update tracking and apply fill
+            new_fill_qty, remaining_qty = self.order_manager.update_order_fill(order, order.filled_quantity)
+            
+            if new_fill_qty > 0:
+                self._apply_fill(order, new_fill_qty)
+                self.logger.info(f"Order partially filled: {order.symbol} {new_fill_qty} filled, {remaining_qty} remaining @{order.price}")
+            
+        elif order.status == OrderStatus.FILLED:
+            # Order fully filled
+            new_fill_qty, remaining_qty = self.order_manager.update_order_fill(order, order.filled_quantity)
+            
+            if new_fill_qty > 0:
+                self._apply_fill(order, new_fill_qty)
+            
+            self.order_manager.record_order(order)
+            self.logger.info(f"Order fully filled: {order.symbol} {order.quantity}@{order.price}")
+            self.order_manager.remove_order(order)
+            
         elif order.status == OrderStatus.FAILED:
+            # Order failed to submit
             self.order_manager.record_order(order)
             self.logger.warning(f"Order failed: {order.symbol} {order.quantity}@{order.price}")
+            self.order_manager.remove_order(order)
+            
+        elif order.status == OrderStatus.CANCELED:
+            # Order was canceled
+            self.order_manager.record_order(order)
+            self.logger.info(f"Order canceled: {order.symbol} {order.quantity}@{order.price}")
+            self.order_manager.remove_order(order)
+    
+    def _apply_fill(self, order: Order, fill_quantity: int):
+        """Apply a fill (partial or full) to the portfolio.
+        
+        Args:
+            order: The order being filled
+            fill_quantity: The quantity that was just filled (positive number)
+        """
+        # Create a temporary order with just the fill quantity
+        # Use the same sign as original order (buy vs sell)
+        fill_sign = 1 if order.quantity > 0 else -1
+        fill_order = Order(
+            symbol=order.symbol,
+            quantity=fill_sign * fill_quantity,
+            price=order.price,
+            status=OrderStatus.FILLED,
+            filled_quantity=fill_quantity
+        )
+        self.portfolio.apply_order(fill_order)
     
     def run(self):
         """Start the trading engine."""

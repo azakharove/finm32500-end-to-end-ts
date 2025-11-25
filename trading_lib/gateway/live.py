@@ -139,8 +139,10 @@ class LiveGateway(Gateway):
             # Log order submission
             self.log_order_sent(order, order_id=alpaca_order.id)
             
-            # Update order status
-            order.status = OrderStatus.PENDING
+            # Update order status to ACTIVE
+            # Note: filled_quantity will be updated when polling for order status
+            order.status = OrderStatus.ACTIVE
+            order.filled_quantity = 0  # Initialize
             self._publish_order_update(order)
             
         except Exception as e:
@@ -153,7 +155,6 @@ class LiveGateway(Gateway):
         """Stream real-time market data from Alpaca.
         
         Note: This is a simplified polling implementation.
-        Production systems would use WebSocket streaming.
         """
         if not self._connected:
             self.connect()

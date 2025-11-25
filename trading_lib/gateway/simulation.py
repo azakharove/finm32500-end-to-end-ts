@@ -61,6 +61,10 @@ class SimulationGateway(Gateway):
             # Matching engine will call _publish_order_update when order is filled
         else:
             # Simple simulation: immediate fill at order price
+            from trading_lib.models import OrderStatus
+            # Set filled_quantity to full quantity and status to FILLED
+            order.filled_quantity = abs(order.quantity)
+            order.status = OrderStatus.FILLED
             self.logger.debug(f"Simulated order execution: {order.symbol} {order.quantity}@{order.price}")
             self.log_order_filled(order, fill_price=order.price)
             self._publish_order_update(order)

@@ -46,6 +46,11 @@ class GatewayConfig:
 class TradingConfig:
     """Trading system configuration."""
     gateway: GatewayConfig
+    strategy: Optional[dict] = None  # Strategy configuration dict
+    initial_capital: float = 100000.0
+    max_orders_per_minute: int = 60
+    max_position_size: Optional[float] = None
+    max_order_value: Optional[float] = None
 
 
 def load_config(config_path: str) -> TradingConfig:
@@ -91,5 +96,12 @@ def load_config(config_path: str) -> TradingConfig:
         symbols=gateway_data.get('symbols', [])
     )
     
-    return TradingConfig(gateway=gateway_config)
+    return TradingConfig(
+        gateway=gateway_config,
+        strategy=data.get('strategy'),
+        initial_capital=data.get('initial_capital', 100000.0),
+        max_orders_per_minute=data.get('max_orders_per_minute', 60),
+        max_position_size=data.get('max_position_size'),
+        max_order_value=data.get('max_order_value')
+    )
 

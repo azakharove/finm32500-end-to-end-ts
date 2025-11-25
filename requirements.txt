@@ -2,6 +2,7 @@ pytest
 coverage
 pandas
 numpy
+matplotlib
 flake8
 yfinance
 requests

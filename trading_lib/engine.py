@@ -4,6 +4,9 @@ from trading_lib.strategies import Strategy
 from trading_lib.portfolio import Portfolio
 from trading_lib.order_manager import OrderManager
 from trading_lib.logging_config import get_logger
+from trading_lib.performance import PerformanceTracker
+from typing import Optional
+from datetime import datetime
 
 class TradingEngine:
     """Main orchestrator for backtesting and live trading.
@@ -18,11 +21,19 @@ class TradingEngine:
     7. Gateway publishes fills -> Portfolio subscribes to fills, updates positions
     """
     
-    def __init__(self, gateway: Gateway, strategy: Strategy, portfolio: Portfolio, order_manager: OrderManager):
+    def __init__(
+        self, 
+        gateway: Gateway, 
+        strategy: Strategy, 
+        portfolio: Portfolio, 
+        order_manager: OrderManager,
+        performance_tracker: Optional[PerformanceTracker] = None
+    ):
         self.gateway = gateway
         self.strategy = strategy
         self.portfolio = portfolio
         self.order_manager = order_manager
+        self.performance_tracker = performance_tracker
         self.logger = get_logger('engine')
         
         self._setup_subscriptions()
@@ -35,6 +46,12 @@ class TradingEngine:
         self.gateway.subscribe_order_updates(self._on_order_update)
     
     def _on_market_data(self, tick: MarketDataPoint):
+        # Update performance tracker with current market price
+        if self.performance_tracker:
+            self.performance_tracker.update_market_price(tick.symbol, tick.price)
+            # Record portfolio value periodically
+            self.performance_tracker.record_portfolio_value(self.portfolio, tick.timestamp)
+        
         signals = self.strategy.generate_signals(tick)
         
         for signal in signals:
@@ -59,7 +76,7 @@ class TradingEngine:
             if order.filled_quantity > 0:
                 new_fill_qty, remaining_qty = self.order_manager.update_order_fill(order, order.filled_quantity)
                 if new_fill_qty > 0:
-                    self._apply_fill(order, new_fill_qty)
+                    self._apply_fill(order, new_fill_qty, datetime.now())
                     # Status is already updated by update_order_fill
                     if remaining_qty > 0:
                         self.logger.info(f"Order partially filled: {order.symbol} {new_fill_qty} filled, {remaining_qty} remaining @{order.price}")
@@ -74,7 +91,7 @@ class TradingEngine:
             new_fill_qty, remaining_qty = self.order_manager.update_order_fill(order, order.filled_quantity)
             
             if new_fill_qty > 0:
-                self._apply_fill(order, new_fill_qty)
+                self._apply_fill(order, new_fill_qty, datetime.now())
                 self.logger.info(f"Order partially filled: {order.symbol} {new_fill_qty} filled, {remaining_qty} remaining @{order.price}")
             
         elif order.status == OrderStatus.FILLED:
@@ -82,7 +99,7 @@ class TradingEngine:
             new_fill_qty, remaining_qty = self.order_manager.update_order_fill(order, order.filled_quantity)
             
             if new_fill_qty > 0:
-                self._apply_fill(order, new_fill_qty)
+                self._apply_fill(order, new_fill_qty, datetime.now())
             
             self.order_manager.record_order(order)
             self.logger.info(f"Order fully filled: {order.symbol} {order.quantity}@{order.price}")
@@ -100,12 +117,13 @@ class TradingEngine:
             self.logger.info(f"Order canceled: {order.symbol} {order.quantity}@{order.price}")
             self.order_manager.remove_order(order)
     
-    def _apply_fill(self, order: Order, fill_quantity: int):
+    def _apply_fill(self, order: Order, fill_quantity: int, timestamp: Optional[datetime] = None):
         """Apply a fill (partial or full) to the portfolio.
         
         Args:
             order: The order being filled
             fill_quantity: The quantity that was just filled (positive number)
+            timestamp: Timestamp of the fill (default: now)
         """
         # Create a temporary order with just the fill quantity
         # Use the same sign as original order (buy vs sell)
@@ -117,7 +135,17 @@ class TradingEngine:
             status=OrderStatus.FILLED,
             filled_quantity=fill_quantity
         )
-        self.portfolio.apply_order(fill_order)
+        
+        try:
+            self.portfolio.apply_order(fill_order)
+            
+            # Record trade in performance tracker
+            if self.performance_tracker:
+                self.performance_tracker.record_trade(fill_order, timestamp)
+        except ValueError as e:
+            # Handle insufficient cash/holdings gracefully
+            self.logger.error(f"Failed to apply fill: {e}. Order: {fill_order.symbol} {fill_order.quantity}@{fill_order.price}")
+            # Don't record the trade if it couldn't be applied
     
     def run(self):
         """Start the trading engine."""

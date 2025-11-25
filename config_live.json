@@ -5,6 +5,16 @@
     "api_secret": "API_SECRET",
     "base_url": "https://paper-api.alpaca.markets",
     "symbols": ["AAPL", "MSFT"]
-  }
+  },
+  "strategy": {
+    "type": "rsi",
+    "period": 14,
+    "oversold": 30,
+    "overbought": 70,
+    "quantity": 10
+  },
+  "initial_capital": 100000.0,
+  "max_orders_per_minute": 60,
+  "max_order_value": 50000.0
 }
 

@@ -11,7 +11,7 @@ from trading_lib.config import load_config, TradingConfig, GatewayConfig
 from trading_lib.gateway import create_gateway
 from trading_lib.order_manager import OrderManager
 from trading_lib.logging_config import setup_logging, get_logger, get_order_logger
-
+from trading_lib.performance import PerformanceTracker, PerformanceMetrics, Trade, Position
 __all__ = [
     "MarketDataPoint",
     "Order",
@@ -33,5 +33,9 @@ __all__ = [
     "setup_logging",
     "get_logger",
     "get_order_logger",
+    "PerformanceTracker",
+    "PerformanceMetrics",
+    "Trade",
+    "Position",
 ]
 

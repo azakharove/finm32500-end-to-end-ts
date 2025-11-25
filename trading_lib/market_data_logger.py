@@ -24,6 +24,10 @@ class MarketDataLogger:
         self._files = {}
         self._writers = {}
         self._current_date = {}
+        
+        # Track last logged tick per symbol to prevent duplicates
+        # Key: symbol, Value: (timestamp, price) tuple
+        self._last_logged = {}
     
     def log_tick(self, tick: MarketDataPoint):
         """Log a market data tick to appropriate CSV file.
@@ -35,6 +39,11 @@ class MarketDataLogger:
         """
         symbol = tick.symbol
         date_str = tick.timestamp.strftime('%Y%m%d')
+        
+        # Check for duplicates: skip if this tick is identical to the last logged one
+        tick_key = (tick.timestamp, tick.price)
+        if symbol in self._last_logged and self._last_logged[symbol] == tick_key:
+            return  # Skip duplicate tick
         
         # Check if we need to rotate to a new file (date changed)
         if symbol in self._current_date and self._current_date[symbol] != date_str:
@@ -53,6 +62,9 @@ class MarketDataLogger:
         
         # Flush immediately for real-time logging
         self._files[symbol].flush()
+        
+        # Update last logged tick for this symbol
+        self._last_logged[symbol] = tick_key
     
     def _open_file(self, symbol: str, date_str: str):
         """Open CSV file for symbol and date."""
@@ -86,6 +98,7 @@ class MarketDataLogger:
             del self._files[symbol]
             del self._writers[symbol]
             del self._current_date[symbol]
+            # Note: Keep _last_logged to prevent duplicates across file rotations
     
     def close_all(self):
         """Close all open file handles."""

@@ -39,7 +39,7 @@ class Action(str, Enum):
 class RecordingInterval(str, Enum):
     """Enum representing the frequency of portfolio value recording."""
     
-    TICK = "tick"           # Every tick (very high frequency)
+    TICK = "tick"           # Every tick
     SECOND = "1s"           # Every 1 second
     MINUTE = "1m"           # Every 1 minute
     HOURLY = "1h"           # Every hour

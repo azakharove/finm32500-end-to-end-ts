@@ -6,6 +6,7 @@ from trading_lib.models import (
     AlpacaPosition, AlpacaOrder, AccountState
 )
 from trading_lib.logging_config import get_logger
+from trading_lib.market_data_logger import MarketDataLogger
 
 
 class LiveGateway(Gateway):
@@ -17,7 +18,9 @@ class LiveGateway(Gateway):
         api_secret: str,
         base_url: str = "https://paper-api.alpaca.markets",
         symbols: list = None,
-        audit_log_path: str = None
+        audit_log_path: str = None,
+        save_market_data: bool = True,
+        market_data_dir: str = "data/live"
     ):
         """Initialize live gateway.
         
@@ -27,6 +30,8 @@ class LiveGateway(Gateway):
             base_url: API base URL (paper or live trading)
             symbols: List of symbols to subscribe to
             audit_log_path: Optional path for order audit log
+            save_market_data: Whether to save market data to CSV (default: True)
+            market_data_dir: Directory to save market data CSVs
         """
         super().__init__(audit_log_path=audit_log_path)
         self.api_key = api_key
@@ -36,6 +41,10 @@ class LiveGateway(Gateway):
         self._api = None
         self._connected = False
         self.logger = get_logger('gateway.live')
+        
+        # Market data logging
+        self.save_market_data = save_market_data
+        self.market_data_logger = MarketDataLogger(market_data_dir) if save_market_data else None
     
     def connect(self):
         """Connect to Alpaca API."""
@@ -96,6 +105,8 @@ class LiveGateway(Gateway):
     def disconnect(self):
         """Disconnect from Alpaca."""
         self._close_audit_log()
+        if self.market_data_logger:
+            self.market_data_logger.close_all()
         self._connected = False
         self.logger.info("Disconnected from Alpaca")
     
@@ -162,7 +173,12 @@ class LiveGateway(Gateway):
                             symbol=symbol,
                             price=float(trade.price)
                         )
+                        # Publish to subscribers
                         self._publish_market_data(data_point)
+                        
+                        # Save to CSV if enabled
+                        if self.market_data_logger:
+                            self.market_data_logger.log_tick(data_point)
                     except Exception as e:
                         self.logger.error(f"Error fetching {symbol}: {e}")
                 

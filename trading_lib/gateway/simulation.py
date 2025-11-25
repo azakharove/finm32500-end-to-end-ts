@@ -25,12 +25,16 @@ class SimulationGateway(Gateway):
         super().__init__(audit_log_path=audit_log_path)
         self.data_dir = Path(data_dir)
         self.csv_path = self.data_dir / csv_path if not Path(csv_path).is_absolute() else Path(csv_path)
-        self.matching_engine = matching_engine
         self._connected = False
         self.logger = get_logger('gateway.simulation')
+
+        self.matching_engine = matching_engine
+        if self.matching_engine:
+            self.matching_engine.subscribe_order_updates(self._publish_order_update)
         
         if not self.csv_path.exists():
             raise FileNotFoundError(f"CSV file not found: {self.csv_path}")
+        
     
     def connect(self):
         """Connect to simulation data source."""

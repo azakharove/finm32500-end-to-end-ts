@@ -79,7 +79,7 @@ class MatchingEngine:
         internal_order = self.ensure_order_id(internal_order)
         
         self.attempt_to_fill_order(internal_order)
-
+        
         self._publish_order_update(internal_order)
         
         return internal_order

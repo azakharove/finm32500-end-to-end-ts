@@ -62,10 +62,13 @@ class MatchingEngine:
         
         if self._cancel_rate > 0 and random_value < self._cancel_rate:
             order.status = OrderStatus.CANCELED
+            order.filled_quantity = 0
         elif self._partial_fill_rate > 0 and random_value < self._partial_fill_rate + self._cancel_rate:
             order.status = OrderStatus.PARTIALLY_FILLED
+            order.filled_quantity = order.quantity  // 3 
         else:
             order.status = OrderStatus.FILLED
+            order.filled_quantity = order.quantity
 
         self._orders[order.id] = order
 
@@ -80,6 +83,3 @@ class MatchingEngine:
         self._publish_order_update(internal_order)
         
         return internal_order
-    
-    # TODO: add logic for partially filled orders (value for quantity remaining)
-    # TODO: test each state transition

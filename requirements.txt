@@ -6,3 +6,4 @@ flake8
 yfinance
 requests
 dotenv
+alpaca-trade-api

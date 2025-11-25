@@ -42,6 +42,10 @@ class OrderManager:
         
         # Position tracking
         self._position_values = {}  # {symbol: net_position_value}
+        
+        # Active order tracking - track orders by their object id
+        # Key: order object id, Value: (Order object, last_known_filled_quantity)
+        self._active_orders = {}
     
     def validate_order(self, order: Order) -> tuple[bool, str]:
         """Validate order against all risk checks.
@@ -109,10 +113,74 @@ class OrderManager:
         # Record timestamp for rate limiting
         self._order_timestamps.append(datetime.now())
         
-        # Update position tracking
-        symbol = order.symbol
-        order_value = order.quantity * order.price
-        self._position_values[symbol] = self._position_values.get(symbol, 0.0) + order_value
+        # Track active order with initial filled_quantity
+        order_id = id(order)
+        self._active_orders[order_id] = (order, order.filled_quantity)
+        
+        # Update position tracking (only for new orders, not fills)
+        # Position tracking is updated when order is first submitted
+        if order.status.value == "ACTIVE" or order.status.value == "PENDING":
+            symbol = order.symbol
+            order_value = order.quantity * order.price
+            self._position_values[symbol] = self._position_values.get(symbol, 0.0) + order_value
+    
+    def update_order_fill(self, order: Order, filled_quantity: int) -> tuple[int, int]:
+        """Update order with new fill information.
+        
+        Args:
+            order: The order being filled
+            filled_quantity: New total filled quantity
+            
+        Returns:
+            (new_fill_qty, remaining_qty) tuple:
+            - new_fill_qty: Quantity that was just filled (difference from last known)
+            - remaining_qty: Remaining quantity to fill
+        """
+        order_id = id(order)
+        order.filled_quantity = filled_quantity
+        
+        # Get previous filled quantity
+        if order_id in self._active_orders:
+            _, previous_filled = self._active_orders[order_id]
+        else:
+            previous_filled = 0
+        
+        new_fill_qty = filled_quantity - previous_filled
+        remaining_qty = order.remaining_quantity
+        
+        # Update status based on fill
+        from trading_lib.models import OrderStatus
+        if remaining_qty == 0:
+            order.status = OrderStatus.FILLED
+            # Remove from active orders when fully filled
+            self._active_orders.pop(order_id, None)
+        elif filled_quantity > previous_filled:
+            order.status = OrderStatus.PARTIALLY_FILLED
+            # Update tracking with new filled_quantity
+            self._active_orders[order_id] = (order, filled_quantity)
+        else:
+            # No change in fill
+            if order_id in self._active_orders:
+                self._active_orders[order_id] = (order, filled_quantity)
+        
+        return (new_fill_qty, remaining_qty)
+    
+    def get_active_orders(self) -> dict:
+        """Get all active orders being tracked.
+        
+        Returns:
+            Dictionary mapping order_id -> Order
+        """
+        return {order_id: order for order_id, (order, _) in self._active_orders.items()}
+    
+    def remove_order(self, order: Order):
+        """Remove order from active tracking.
+        
+        Args:
+            order: Order to remove
+        """
+        order_id = id(order)
+        self._active_orders.pop(order_id, None)
     
     def get_order_rate(self) -> int:
         """Get current orders per minute rate."""
